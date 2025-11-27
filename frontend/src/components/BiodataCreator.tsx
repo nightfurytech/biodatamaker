@@ -27,22 +27,9 @@ interface FormErrors {
   submit?: string;
 }
 
-// 🔥 Base class for all text-like inputs
+// Base class for all text-like inputs
 const inputBaseClass =
     "w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all";
-
-// Format DOB display as "27 Nov 2025"
-const formatDateDisplay = (value: string) => {
-  if (!value) return "DD MMM YYYY";
-  const date = new Date(value);
-  if (isNaN(date.getTime())) return value;
-
-  const day = date.getDate().toString().padStart(2, '0');
-  const monthShort = date.toLocaleString('en-GB', { month: 'short' });
-  const year = date.getFullYear();
-
-  return `${day} ${monthShort} ${year}`;
-};
 
 export default function BiodataCreator() {
   const [formData, setFormData] = useState<FormData>({
@@ -363,32 +350,12 @@ export default function BiodataCreator() {
                 <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
                   Date of Birth *
                 </label>
-
-                {/* Custom-styled DOB field with hidden native date input */}
-                <div className="relative">
-                  <div
-                      className={`${inputBaseClass} cursor-pointer flex items-center`}
-                  >
-                  <span
-                      className={
-                        formData.dob ? "text-foreground" : "text-muted-foreground"
-                      }
-                  >
-                    {formData.dob
-                        ? formatDateDisplay(formData.dob)
-                        : "DD MMM YYYY"}
-                  </span>
-                  </div>
-                  <input
-                      type="date"
-                      value={formData.dob}
-                      onChange={(e) =>
-                          setFormData({ ...formData, dob: e.target.value })
-                      }
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
-
+                <input
+                    type="date"
+                    value={formData.dob}
+                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
+                    className={`${inputBaseClass} appearance-none`}
+                />
                 {errors.dob && <p className="text-destructive text-sm mt-1">{errors.dob}</p>}
               </div>
 
