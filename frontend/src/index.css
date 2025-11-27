@@ -1,0 +1,138 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 345 20% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 345 20% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 345 20% 20%;
+
+    --primary: 355 75% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 330 60% 95%;
+    --secondary-foreground: 345 20% 20%;
+
+    --muted: 330 40% 96%;
+    --muted-foreground: 345 10% 45%;
+
+    --accent: 280 65% 70%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 330 30% 92%;
+    --input: 330 30% 95%;
+    --ring: 355 75% 65%;
+
+    --radius: 1rem;
+    
+    /* Dating theme custom colors */
+    --romantic: 355 75% 65%;
+    --romantic-light: 355 75% 85%;
+    --romantic-dark: 355 75% 45%;
+    --love: 340 82% 70%;
+    --passion: 355 90% 60%;
+    
+    /* Gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(355 75% 65%), hsl(340 82% 70%));
+    --gradient-passion: linear-gradient(135deg, hsl(355 90% 60%), hsl(280 65% 70%));
+    --gradient-soft: linear-gradient(180deg, hsl(330 60% 98%), hsl(0 0% 100%));
+    
+    /* Shadows */
+    --shadow-romantic: 0 10px 30px -10px hsl(355 75% 65% / 0.3);
+    --shadow-glow: 0 0 40px hsl(355 75% 85% / 0.4);
+    
+    /* Animations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 345 20% 10%;
+    --foreground: 330 40% 96%;
+
+    --card: 345 20% 15%;
+    --card-foreground: 330 40% 96%;
+
+    --popover: 345 20% 15%;
+    --popover-foreground: 330 40% 96%;
+
+    --primary: 355 75% 65%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 345 20% 20%;
+    --secondary-foreground: 330 40% 96%;
+
+    --muted: 345 20% 20%;
+    --muted-foreground: 345 10% 65%;
+
+    --accent: 280 65% 70%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62.8% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 345 20% 25%;
+    --input: 345 20% 20%;
+    --ring: 355 75% 65%;
+    
+    /* Dating theme custom colors - dark mode */
+    --romantic: 355 75% 65%;
+    --romantic-light: 355 75% 85%;
+    --romantic-dark: 355 75% 45%;
+    --love: 340 82% 70%;
+    --passion: 355 90% 60%;
+    
+    --gradient-romantic: linear-gradient(135deg, hsl(355 75% 65%), hsl(340 82% 70%));
+    --gradient-passion: linear-gradient(135deg, hsl(355 90% 60%), hsl(280 65% 70%));
+    --gradient-soft: linear-gradient(180deg, hsl(345 20% 15%), hsl(345 20% 10%));
+    
+    --shadow-romantic: 0 10px 30px -10px hsl(355 75% 65% / 0.4);
+    --shadow-glow: 0 0 40px hsl(355 75% 65% / 0.3);
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
