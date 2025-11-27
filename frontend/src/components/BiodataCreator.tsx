@@ -31,6 +31,19 @@ interface FormErrors {
 const inputBaseClass =
     "w-full h-12 sm:h-[3.5rem] px-3 sm:px-4 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all";
 
+// Format DOB display as "27 Nov 2025"
+const formatDateDisplay = (value: string) => {
+  if (!value) return "DD MMM YYYY";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return value;
+
+  const day = date.getDate().toString().padStart(2, '0');
+  const monthShort = date.toLocaleString('en-GB', { month: 'short' });
+  const year = date.getFullYear();
+
+  return `${day} ${monthShort} ${year}`;
+};
+
 export default function BiodataCreator() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
@@ -345,25 +358,55 @@ export default function BiodataCreator() {
             </div>
 
             {/* DOB & Job Role */}
-            <div>
-              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
-                Date of Birth *
-              </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+              <div>
+                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                  Date of Birth *
+                </label>
 
-              <div className={`${inputBaseClass} flex items-center`}>
-                <input
-                    type="date"
-                    value={formData.dob}
-                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    className="w-full bg-transparent border-none outline-none focus:ring-0 appearance-none"
-                />
+                {/* Wrapper controls height; input is transparent but clickable */}
+                <div className="relative">
+                  <div className={`${inputBaseClass} flex items-center`}>
+                  <span
+                      className={
+                        formData.dob ? "text-foreground" : "text-muted-foreground"
+                      }
+                  >
+                    {formData.dob
+                        ? formatDateDisplay(formData.dob)
+                        : "Select your date of birth"}
+                  </span>
+                  </div>
+                  <input
+                      type="date"
+                      value={formData.dob}
+                      onChange={(e) =>
+                          setFormData({ ...formData, dob: e.target.value })
+                      }
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                </div>
+
+                {errors.dob && (
+                    <p className="text-destructive text-sm mt-1">
+                      {errors.dob}
+                    </p>
+                )}
               </div>
 
-              {errors.dob && (
-                  <p className="text-destructive text-sm mt-1">
-                    {errors.dob}
-                  </p>
-              )}
+              <div>
+                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                  Job Role
+                </label>
+                <input
+                    type="text"
+                    value={formData.jobRole}
+                    onChange={(e) => setFormData({ ...formData, jobRole: e.target.value })}
+                    className={inputBaseClass}
+                    placeholder="Software Engineer"
+                />
+                {errors.jobRole && <p className="text-destructive text-sm mt-1">{errors.jobRole}</p>}
+              </div>
             </div>
 
             {/* Location */}
