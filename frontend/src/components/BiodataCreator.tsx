@@ -287,7 +287,7 @@ export default function BiodataCreator() {
                     value={formData.socialMedia}
                     onChange={(e) => setFormData({ ...formData, socialMedia: e.target.value })}
                     className="w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-sm sm:text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    placeholder="Instagram:@username"
+                    placeholder="Instagram:_amritadas_ LinkedIn:amrita-j-das"
                 />
               </div>
             </div>
