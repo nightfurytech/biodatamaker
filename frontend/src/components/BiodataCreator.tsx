@@ -231,7 +231,7 @@ export default function BiodataCreator() {
                     href={biodataUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:text-romantic font-medium whitespace-nowrap flex items-center justify-center gap-2 transition-colors"
+                    className="text-primary hover:text-romantic font-medium text-sm sm:text-base whitespace-nowrap flex items-center justify-center gap-2 transition-colors"
                 >
                   {biodataUrl}
                   <ExternalLink className="w-4 h-4 flex-shrink-0" />
