@@ -226,15 +226,17 @@ export default function BiodataCreator() {
 
             <div className="bg-gradient-to-r from-secondary to-muted rounded-2xl p-6 mb-6 border border-border">
               <p className="text-sm text-muted-foreground mb-3">Here you can find your biodata:</p>
-              <a
-                  href={biodataUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:text-romantic font-medium break-all flex items-center justify-center gap-2 transition-colors"
-              >
-                {biodataUrl}
-                <ExternalLink className="w-4 h-4 flex-shrink-0" />
-              </a>
+              <div className="overflow-x-auto">
+                <a
+                    href={biodataUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-romantic font-medium whitespace-nowrap flex items-center justify-center gap-2 transition-colors"
+                >
+                  {biodataUrl}
+                  <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                </a>
+              </div>
             </div>
 
             <button
