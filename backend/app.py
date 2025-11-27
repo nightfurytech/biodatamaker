@@ -214,7 +214,7 @@ def background_worker():
             process_pending()
         except Exception as e:
             print("Worker error:", e)
-        time.sleep(300)  # 5 mins
+        time.sleep(20)  # 5 mins
 
 
 if __name__ == "__main__":
