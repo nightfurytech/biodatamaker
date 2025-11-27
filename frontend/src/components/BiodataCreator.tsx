@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, {useRef, useState} from 'react';
 import { Heart, Upload, Sparkles, ExternalLink } from 'lucide-react';
+import imageCompression from 'browser-image-compression';
+import {uploadFileToSupabase} from "@/lib/supabaseClient.ts";
 
 interface FormData {
   name: string;
@@ -10,6 +12,7 @@ interface FormData {
   aboutMe: string;
   partnerPreferences: string;
   image: File | null;
+  imageUrl?: string;    // NEW
 }
 
 interface FormErrors {
@@ -32,13 +35,16 @@ export default function BiodataCreator() {
     socialMedia: '',
     aboutMe: '',
     partnerPreferences: '',
-    image: null
+    image: null,
+    imageUrl: ''
   });
 
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
   const [biodataUrl, setBiodataUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [showSizeError, setShowSizeError] = useState(false);
 
   const validateForm = () => {
     const newErrors: FormErrors = {};
@@ -82,16 +88,82 @@ export default function BiodataCreator() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setFormData({ ...formData, image: file });
+    if (!file) return;
+
+    // Reset previous size error
+    setShowSizeError(false);
+
+    // 10 MB limit
+    if (file.size > 10 * 1024 * 1024) {
+      setShowSizeError(true);
+      setErrors(prev => ({ ...prev, image: 'Please upload an image smaller than 10MB' }));
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      // Optional: toast.info("Compressing image...");
+      const options = {
+        maxSizeMB: 0.5,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+
+      // Compress image in browser
+      const compressedFile = await imageCompression(file, options);
+
+      // Upload compressed image to Supabase
+      const imageUrl = await uploadFileToSupabase(compressedFile as File);
+      if (!imageUrl) {
+        console.error('Failed to upload image to Supabase');
+        // toast.error('Failed to upload image');
+        setErrors(prev => ({ ...prev, image: 'Failed to upload image. Please try again.' }));
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        setLoading(false);
+        return;
+      }
+
+      // Preview compressed image
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
+        // toast.success('Image ready!');
       };
-      reader.readAsDataURL(file);
-      setErrors({ ...errors, image: undefined });
+      reader.readAsDataURL(compressedFile);
+
+      // Optional: update the input to hold the compressed file
+      const dataTransfer = new DataTransfer();
+      const compressedFileAsFile = new File([compressedFile], file.name, {
+        type: compressedFile.type,
+      });
+      dataTransfer.items.add(compressedFileAsFile);
+      if (fileInputRef.current) {
+        fileInputRef.current.files = dataTransfer.files;
+      }
+
+      // Store file + URL in your form state
+      setFormData(prev => ({
+        ...prev,
+        image: compressedFileAsFile,
+        imageUrl: imageUrl,
+      }));
+
+      setErrors(prev => ({ ...prev, image: undefined }));
+    } catch (error) {
+      console.error('Compression / upload error:', error);
+      // toast.error('Failed to process image');
+      setErrors(prev => ({ ...prev, image: 'Failed to process image. Please try again.' }));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,15 +174,24 @@ export default function BiodataCreator() {
 
     try {
       const formDataToSend = new FormData();
+
       Object.keys(formData).forEach(key => {
         const value = formData[key as keyof FormData];
+
+        if (key === "image") return; // ❌ Don't send file
+
+        if (key === "imageUrl") {
+          formDataToSend.append("image", value as string); // ✔ send URL as "image"
+          return;
+        }
+
         if (value !== null) {
-          formDataToSend.append(key, value instanceof File ? value : String(value));
+          formDataToSend.append(key, String(value));
         }
       });
 
-      // Replace {{domain}} with your actual domain
-      const response = await fetch('{{domain}}/api/v1/generate-bio', {
+
+      const response = await fetch(`${import.meta.env.VITE_DOMAIN_URL || ''}/api/v1/generate-bio`, {
         method: 'POST',
         body: formDataToSend
       });
@@ -126,6 +207,8 @@ export default function BiodataCreator() {
       setLoading(false);
     }
   };
+
+
 
   const wordCount = (text: string) => text.trim().split(/\s+/).filter(w => w.length > 0).length;
 
