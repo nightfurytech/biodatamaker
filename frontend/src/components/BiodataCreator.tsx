@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Heart, Upload, Sparkles, ExternalLink } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import { uploadFileToSupabase } from "@/lib/supabaseClient.ts";
@@ -63,6 +63,21 @@ export default function BiodataCreator() {
   const [biodataUrl, setBiodataUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [showSizeError, setShowSizeError] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile vs desktop
+  useEffect(() => {
+    const checkIsMobile = () => {
+      if (typeof navigator !== "undefined") {
+        const ua = navigator.userAgent || "";
+        const mobileMatch = /Mobi|Android|iPhone|iPad|iPod/i.test(ua);
+        setIsMobile(mobileMatch);
+      } else {
+        setIsMobile(false);
+      }
+    };
+    checkIsMobile();
+  }, []);
 
   const validateForm = () => {
     const newErrors: FormErrors = {};
@@ -364,28 +379,40 @@ export default function BiodataCreator() {
                   Date of Birth *
                 </label>
 
-                {/* Wrapper controls height; input is transparent but clickable */}
-                <div className="relative">
-                  <div className={`${inputBaseClass} flex items-center`}>
-                  <span
-                      className={
-                        formData.dob ? "text-foreground" : "text-muted-foreground"
-                      }
-                  >
-                    {formData.dob
-                        ? formatDateDisplay(formData.dob)
-                        : "Select your date of birth"}
-                  </span>
-                  </div>
-                  <input
-                      type="date"
-                      value={formData.dob}
-                      onChange={(e) =>
-                          setFormData({ ...formData, dob: e.target.value })
-                      }
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  />
-                </div>
+                {isMobile ? (
+                    // Mobile: wrapper + transparent date input overlay
+                    <div className="relative">
+                      <div className={`${inputBaseClass} flex items-center`}>
+                    <span
+                        className={
+                          formData.dob ? "text-foreground" : "text-muted-foreground"
+                        }
+                    >
+                      {formData.dob
+                          ? formatDateDisplay(formData.dob)
+                          : "Select your date of birth"}
+                    </span>
+                      </div>
+                      <input
+                          type="date"
+                          value={formData.dob}
+                          onChange={(e) =>
+                              setFormData({ ...formData, dob: e.target.value })
+                          }
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                      />
+                    </div>
+                ) : (
+                    // Desktop: normal styled date input
+                    <input
+                        type="date"
+                        value={formData.dob}
+                        onChange={(e) =>
+                            setFormData({ ...formData, dob: e.target.value })
+                        }
+                        className={`${inputBaseClass} appearance-none`}
+                    />
+                )}
 
                 {errors.dob && (
                     <p className="text-destructive text-sm mt-1">
