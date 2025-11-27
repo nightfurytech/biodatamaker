@@ -42,8 +42,9 @@ def generate_biodata_html(
     Generates a fully mobile-responsive biodata HTML page:
     - Works on iPhone/Android + desktop
     - Handles missing job role & socials
-    - Handles arbitrary social text safely (Instagram/LinkedIn/Facebook/Snapchat/TikTok etc.)
-    - Social text can NEVER break the HTML
+    - Social text is robust and can’t break HTML
+    - Tight, consistent spacing between headings & content
+    - Always shows an “Interests & Hobbies” header above badges
     """
 
     if not (50 <= count_words(about_me) <= 250):
@@ -51,22 +52,21 @@ def generate_biodata_html(
     if not (50 <= count_words(partner_preferences) <= 250):
         raise ValueError("'partner_preferences' must be 50–250 words.")
 
-    # Flags + sanitized inputs for safety
     job_role_present = bool(job_role.strip())
     socials_present = bool(social_handles_csv.strip())
 
-    # Escape anything that could be interpreted as HTML
-    safe_social_text = html.escape(social_handles_csv or "")
+    # Escape anything dangerous
     safe_name = html.escape(name or "")
     safe_dob = html.escape(dob or "")
     safe_job_role = html.escape(job_role or "")
     safe_location = html.escape(location or "")
+    safe_social_text = html.escape(social_handles_csv or "")
     safe_image_url = html.escape(image_url or "")
 
     system_prompt = (
         "You are an expert UI/UX designer who builds modern, romantic, premium, "
         "dating-app-style biodata pages in pure HTML+CSS. "
-        "You must output ONLY valid HTML. No Markdown. No comments."
+        "You must output ONLY valid HTML. No Markdown, no comments."
     )
 
     structured_block = f"""
@@ -92,14 +92,14 @@ The following is the user's biodata information:
 
 {structured_block}
 
-Generate a **complete HTML5 biodata** page.
+Generate a complete, mobile-first **HTML5 biodata page**.
 
 ############################################
-## GLOBAL REQUIREMENTS
+## GLOBAL LAYOUT & TYPOGRAPHY
 ############################################
-- Mobile-first, responsive, scrolling layout.
-- Card centered on larger screens, full-width-ish on mobile.
-- Use this approximate layout:
+- Mobile-first, scrolling layout (no full-page vertical centering).
+- Center card on larger screens.
+- Use this base:
 
 body {{
   background: linear-gradient(135deg, #f5e9ff 0%, #e3d1ff 50%, #d8c2ff 100%);
@@ -139,16 +139,57 @@ body {{
   }}
 }}
 
-- Do NOT draw any vertical colored pipe/line next to headings.
+- NO vertical colored line/pipe next to headings.
 
 ############################################
-## BASIC DETAILS MINI CARDS
+## CONSISTENT SECTION SPACING (IMPORTANT)
 ############################################
+Define sections and text styles so that headings and paragraphs are close together,
+without huge gaps:
+
+.section {{
+  margin-top: 28px;
+}}
+
+.section-title {{
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #6a1fb4;
+  margin: 0 0 8px 0;   /* small gap below heading */
+}}
+
+.section-text {{
+  margin: 0;           /* NO large margin-top */
+  line-height: 1.7;
+  font-size: 0.98rem;
+}}
+
+.section + .section {{
+  margin-top: 32px;    /* consistent spacing between sections */
+}}
+
+- Do NOT add extra padding-top or big margin-top on the first paragraph.
+- Do NOT indent paragraphs with large left padding or text-indent.
+
+############################################
+## HERO SECTION
+############################################
+Centered hero with:
+- Circular profile image (140px mobile → 170px desktop) with purple glow.
+- Name in bold.
+- Short dating-style tagline.
+- 2–3 line highlight summary in a <p class="section-text">.
+
+############################################
+## BASIC DETAILS AS MINI CARDS
+############################################
+Use:
+
 .details-grid {{
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
-  margin-top: 16px;
+  margin-top: 12px;
 }}
 
 .detail-card {{
@@ -176,12 +217,12 @@ Include cards for:
 - Date of Birth
 - Age (value is <span id="calculated-age"></span>)
 - Current Location (if provided)
-- Job Role **ONLY IF** “Job Role Present: yes”. If "no", omit the card.
+- Job Role ONLY IF Job Role Present is "yes". Otherwise omit that card.
 
 ############################################
 ## DYNAMIC AGE (JS)
 ############################################
-In the HTML body (near the bottom), you must include:
+In the HTML body (near bottom), include:
 
 <script>
   const dobString = "{safe_dob}";
@@ -206,116 +247,131 @@ In the HTML body (near the bottom), you must include:
 </script>
 
 ############################################
-## SOCIAL PROFILES 💜 (ROBUST & UNBREAKABLE)
+## ABOUT ME SECTION
 ############################################
-You are given **Social Handles Raw Text** which is arbitrary user text. It may be:
-- Empty
-- Single handle like: `Instagram: billi`
-- Multiple handles:
-    `Instagram: billi, LinkedIn : https://linkedin.com/in/billi,
-     Snapchat billisnap Tiktok: @billi`
-- Or any messy combination, with extra spaces/newlines.
+Must follow this structure, with tight spacing:
 
-RULES (MUST FOLLOW):
+<section class="section">
+  <h2 class="section-title">About Me</h2>
+  <p class="section-text">...</p>
+  <!-- optional second <p class="section-text">...</p> -->
+</section>
 
-1. If “Social Handles Present” is "no" or the raw text is "(none provided)":
-   → Do NOT render a “Social Profiles 💜” section at all.
-
-2. Never treat this user text as HTML.
-   - Do NOT insert it inside HTML tags (like inside an `<a>` tag).
-   - Only ever place it as text content inside `<span>` or `<li>`.
-   - It is already HTML-escaped (using &lt;, &gt;, &amp;), so just output it as plain text.
-
-3. Try to parse platforms **only by keyword**, case-insensitive:
-   - contains "instagram" → Instagram 📸
-   - contains "linkedin" → LinkedIn 💼
-   - contains "facebook" → Facebook 👍
-   - contains "snapchat" → Snapchat 👻
-   - contains "tiktok" or "tik tok" → TikTok 🎵
-
-4. Splitting into entries:
-   - First, replace newlines with commas conceptually.
-   - Then split by commas.
-   - Trim surrounding whitespace from each piece.
-   - Ignore pieces that are now empty.
-
-5. For each non-empty piece:
-   - Detect platform keyword (as above). If none match, label it as “Profile ⭐”.
-   - Do **NOT** try to be too clever; if unsure, just show the text under “Profile ⭐”.
-   - Render as:
-
-     <li>
-       <span class="social-label">📸 Instagram:</span>
-       <span class="social-text">billi</span>
-     </li>
-
-   - Use this CSS:
-
-     .social-list {{
-       list-style: none;
-       padding: 0;
-       margin: 6px 0 0;
-     }}
-
-     .social-list li {{
-       margin-bottom: 6px;
-       font-size: 0.95rem;
-     }}
-
-     .social-label {{
-       font-weight: 500;
-       color: #6a1fb4;
-       margin-right: 4px;
-     }}
-
-     .social-text {{
-       font-weight: 500;
-     }}
-
-6. Clickable URLs (optional but MUST be safe):
-   - Only treat a value as a URL and wrap in <a> if:
-       - it starts with "http://" or "https://" or "www."
-       - AND it contains no spaces or quotes.
-   - In that case:
-
-     <a href="THE_URL" class="social-link" target="_blank" rel="noopener noreferrer">THE_URL</a>
-
-   - .social-link {{
-       color: #7a35d2;
-       text-decoration: none;
-       font-weight: 500;
-     }}
-     .social-link:hover {{
-       text-decoration: underline;
-     }}
-
-7. If you cannot confidently parse the text into multiple entries:
-   - Render ONE list item:
-
-     <li>
-       <span class="social-label">Social:</span>
-       <span class="social-text">FULL_RAW_TEXT_HERE</span>
-     </li>
-
-   - This way, the HTML NEVER breaks, regardless of what the user typed.
+- NO extra wrapper between h2 and first paragraph.
+- No large vertical gap between the heading and the text.
 
 ############################################
-## ABOUT ME, INTERESTS, PARTNER PREFS
+## INTERESTS & HOBBIES (MANDATORY HEADER)
 ############################################
-- Use ABOUT ME and PARTNER PREFERENCES text, lightly polished.
-- Extract interests/hobbies into .badge elements as before.
-- Tone: dating-app friendly but family-shareable.
+Immediately after About Me, create a dedicated section:
+
+<section class="section">
+  <h2 class="section-title">Interests &amp; Hobbies</h2>
+  <div class="badge-list">
+    <!-- badges here -->
+  </div>
+</section>
+
+- The heading “Interests &amp; Hobbies” is **mandatory**.
+- It must appear directly above the badges (no huge gap, no missing heading).
+- Use badges extracted from ABOUT ME text:
+
+.badge {{
+  display: inline-block;
+  background: #f1e6ff;
+  color: #5a2ca0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin: 6px 8px 0 0;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 6px rgba(150,90,255,0.18);
+}}
+
+############################################
+## PARTNER PREFERENCES SECTION
+############################################
+Follow the same spacing pattern:
+
+<section class="section">
+  <h2 class="section-title">Partner Preferences</h2>
+  <p class="section-text">...</p>
+  <!-- optional second paragraph -->
+</section>
+
+NO huge gap between heading and text.
+
+############################################
+## SOCIAL PROFILES 💜 (ROBUST)
+############################################
+You are given: Social Handles Raw Text (already HTML-escaped).
+
+- If “Social Handles Present” is "no" or raw text is "(none provided)":
+  → Do NOT render the Social Profiles section.
+
+- Otherwise, render:
+
+<section class="section">
+  <h2 class="section-title">Social Profiles 💜</h2>
+  <ul class="social-list">
+    <!-- one <li> per handle -->
+  </ul>
+</section>
+
+.social-list {{
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+}}
+
+.social-list li {{
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}}
+
+.social-label {{
+  font-weight: 500;
+  color: #6a1fb4;
+  margin-right: 4px;
+}}
+
+.social-text {{
+  font-weight: 500;
+}}
+
+.social-link {{
+  color: #7a35d2;
+  text-decoration: none;
+  font-weight: 500;
+}}
+.social-link:hover {{
+  text-decoration: underline;
+}}
+
+Parsing rules (must be SAFE):
+- Raw text may be anything (Instagram, LinkedIn, Snapchat, TikTok, messy commas, etc.).
+- Treat it as plain text, never as HTML.
+- Split on commas/newlines → trim whitespace → skip empty pieces.
+- Detect platform by keyword (instagram, linkedin, facebook, snapchat, tiktok).
+- If something looks like a URL (starts with http://, https://, or www. and has no spaces/quotes):
+    wrap just that URL in <a class="social-link">, otherwise keep plain text.
+- If parsing is confusing, fallback to ONE <li>:
+    <li><span class="social-label">Social:</span><span class="social-text">FULL_RAW_TEXT</span></li>
+
+This way, the HTML CANNOT break no matter what the user typed.
 
 ############################################
 ## FOOTER
 ############################################
-Centered text:
-“Share this profile with someone special 💜”
+At the end of the card:
+
+<div class="section footer-note">
+  Share this profile with someone special 💜
+</div>
 
 ############################################
-## HTML SKELETON
+## HTML SHELL
 ############################################
-Return a full HTML5 page:
+Return a full HTML5 document:
 
 <!DOCTYPE html>
 <html lang="en">
@@ -324,21 +380,22 @@ Return a full HTML5 page:
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{safe_name} - Biodata</title>
   <style>
-    /* all CSS here, including .card, .details-grid, .badge, .social-list, etc. */
+    /* all CSS from above + hero styles, etc. */
   </style>
 </head>
 <body>
   <div class="card">
-    <!-- hero + sections here -->
+    <!-- hero, basic details, sections -->
   </div>
-  <!-- age script here -->
+  <!-- age script -->
 </body>
 </html>
 
-CRITICAL RULES:
-- ONLY output raw HTML (no backticks, no Markdown).
-- Never echo user social text as raw HTML; it is already escaped, treat as plain text.
-- If parsing social text is confusing, fall back to the simple “one <li> with full text” approach.
+RULES:
+- ONLY output raw HTML (no Markdown, no ```).
+- Do NOT invent job role or socials if marked "(not provided)".
+- Maintain tight, consistent vertical spacing: small gap between h2 and first paragraph.
+- Always include the “Interests &amp; Hobbies” heading above badges if badges exist.
 """
 
     response = client.chat.completions.create(
