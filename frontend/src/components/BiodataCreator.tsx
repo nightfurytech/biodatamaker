@@ -2,6 +2,7 @@ import React, {useRef, useState} from 'react';
 import { Heart, Upload, Sparkles, ExternalLink } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
 import {uploadFileToSupabase} from "@/lib/supabaseClient.ts";
+import { toast } from '@/hooks/use-toast';
 
 interface FormData {
   name: string;
@@ -239,7 +240,11 @@ export default function BiodataCreator() {
               <button
                   onClick={() => {
                     navigator.clipboard.writeText(biodataUrl);
-                    // You could add a toast notification here
+                    toast({
+                      title: "URL Copied!",
+                      description: "Your biodata URL has been copied to clipboard",
+                    });
+                    window.open(biodataUrl, '_blank');
                   }}
                   className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
               >
