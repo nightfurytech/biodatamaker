@@ -217,7 +217,7 @@ def background_worker():
             print("Processed pending biodatas")  # <--- this will go to journalctl
         except Exception as e:
             print("Worker error:", e)
-        time.sleep(30)  # 5 mins
+        time.sleep(300)  # 5 mins
 
 
 # start worker thread on import
