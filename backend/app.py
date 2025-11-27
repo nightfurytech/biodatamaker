@@ -12,6 +12,8 @@ import threading, time
 
 from supabase_client import supabase, upload_html
 from worker_process_pending import process_pending
+import re
+import random
 
 app = Flask(__name__)
 CORS(app, resources={
@@ -31,9 +33,26 @@ SUPABASE_URL = os.environ["SUPABASE_URL"]
 SUPABASE_SERVICE_ROLE_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]  # service role, backend only
 
 
-def generate_unique_id() -> str:
-    # short friendly id for URL
-    return uuid.uuid4().hex[:10]
+def generate_unique_id(name: str) -> str:
+    """
+    Returns IDs like: amrita_483920
+    """
+    # sanitize name
+    sanitized = name.strip().lower()
+    sanitized = re.sub(r"[^a-z0-9]+", "-", sanitized)  # keep only safe chars
+    sanitized = sanitized.strip("-")
+
+    # if name becomes empty (e.g. symbols)
+    if not sanitized:
+        sanitized = "user"
+
+    # optional: keep the name part short (to avoid very long URLs)
+    sanitized = sanitized[:30]
+
+    # 6-digit unique number
+    unique_part = f"{random.randint(0, 999999):06d}"
+
+    return f"{sanitized}_{unique_part}"
 
 
 def build_placeholder_html(name: str) -> str:
@@ -122,7 +141,7 @@ def generate_bio():
         return jsonify({"error": "name and dob are required"}), 400
 
     # 2. Generate unique slug for this biodata
-    unique_id = generate_unique_id()
+    unique_id = generate_unique_id(name)
 
     # 3. Build and upload placeholder HTML
     placeholder_html = build_placeholder_html(name)
@@ -147,11 +166,11 @@ def generate_bio():
 
     # 5. Return URL that user can open/share
     # {{domain}} is your own domain where the next route will live
-    share_url = f"{request.host_url.rstrip('/')}/{unique_id}"
+    share_url = f"{request.host_url.rstrip('/')}/api/bio/{unique_id}"
 
     return jsonify({"url": share_url}), 200
 
-@app.get("/<unique_id>")
+@app.get("/api/bio/<unique_id>")
 def show_biodata(unique_id):
     # Get row safely without .single()
     resp = supabase.table("biodatainfo") \
