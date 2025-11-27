@@ -170,14 +170,15 @@ def generate_bio():
 
     return jsonify({"url": share_url}), 200
 
+
 @app.get("/api/bio/<unique_id>")
 def show_biodata(unique_id):
     # Get row safely without .single()
     resp = supabase.table("biodatainfo") \
-                   .select("public_bio_url") \
-                   .eq("unique_id", unique_id) \
-                   .limit(1) \
-                   .execute()
+        .select("public_bio_url") \
+        .eq("unique_id", unique_id) \
+        .limit(1) \
+        .execute()
 
     rows = resp.data or []
 
@@ -208,16 +209,20 @@ def show_biodata(unique_id):
 def serve_ui():
     return jsonify({"hello": "world"}), 200
 
+
 def background_worker():
     while True:
         try:
             process_pending()
+            print("Processed pending biodatas")  # <--- this will go to journalctl
         except Exception as e:
             print("Worker error:", e)
-        time.sleep(20)  # 5 mins
+        time.sleep(300)  # 5 mins
 
+
+# start worker thread on import
+worker_thread = threading.Thread(target=background_worker, daemon=True)
+worker_thread.start()
 
 if __name__ == "__main__":
-    worker_thread = threading.Thread(target=background_worker, daemon=True)
-    worker_thread.start()
     app.run(host="0.0.0.0", port=8081, debug=True)
