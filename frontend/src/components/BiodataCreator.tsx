@@ -29,7 +29,7 @@ interface FormErrors {
 
 // Base class for all text-like inputs
 const inputBaseClass =
-    "w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all";
+    "w-full h-12 sm:h-[3.5rem] px-3 sm:px-4 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all";
 
 export default function BiodataCreator() {
   const [formData, setFormData] = useState<FormData>({
