@@ -345,33 +345,25 @@ export default function BiodataCreator() {
             </div>
 
             {/* DOB & Job Role */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
-              <div>
-                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
-                  Date of Birth *
-                </label>
+            <div>
+              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                Date of Birth *
+              </label>
+
+              <div className={`${inputBaseClass} flex items-center`}>
                 <input
                     type="date"
                     value={formData.dob}
                     onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    className={`${inputBaseClass} appearance-none`}
+                    className="w-full bg-transparent border-none outline-none focus:ring-0 appearance-none"
                 />
-                {errors.dob && <p className="text-destructive text-sm mt-1">{errors.dob}</p>}
               </div>
 
-              <div>
-                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
-                  Job Role
-                </label>
-                <input
-                    type="text"
-                    value={formData.jobRole}
-                    onChange={(e) => setFormData({ ...formData, jobRole: e.target.value })}
-                    className={inputBaseClass}
-                    placeholder="Software Engineer"
-                />
-                {errors.jobRole && <p className="text-destructive text-sm mt-1">{errors.jobRole}</p>}
-              </div>
+              {errors.dob && (
+                  <p className="text-destructive text-sm mt-1">
+                    {errors.dob}
+                  </p>
+              )}
             </div>
 
             {/* Location */}
