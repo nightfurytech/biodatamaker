@@ -1,7 +1,7 @@
-import React, {useRef, useState} from 'react';
+import React, { useRef, useState } from 'react';
 import { Heart, Upload, Sparkles, ExternalLink } from 'lucide-react';
 import imageCompression from 'browser-image-compression';
-import {uploadFileToSupabase} from "@/lib/supabaseClient.ts";
+import { uploadFileToSupabase } from "@/lib/supabaseClient.ts";
 import { toast } from '@/hooks/use-toast';
 
 interface FormData {
@@ -13,7 +13,7 @@ interface FormData {
   aboutMe: string;
   partnerPreferences: string;
   image: File | null;
-  imageUrl?: string;    // NEW
+  imageUrl?: string;
 }
 
 interface FormErrors {
@@ -26,6 +26,23 @@ interface FormErrors {
   partnerPreferences?: string;
   submit?: string;
 }
+
+// 🔥 Base class for all text-like inputs
+const inputBaseClass =
+    "w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all";
+
+// Format DOB display as "27 Nov 2025"
+const formatDateDisplay = (value: string) => {
+  if (!value) return "DD MMM YYYY";
+  const date = new Date(value);
+  if (isNaN(date.getTime())) return value;
+
+  const day = date.getDate().toString().padStart(2, '0');
+  const monthShort = date.toLocaleString('en-GB', { month: 'short' });
+  const year = date.getFullYear();
+
+  return `${day} ${monthShort} ${year}`;
+};
 
 export default function BiodataCreator() {
   const [formData, setFormData] = useState<FormData>({
@@ -93,7 +110,6 @@ export default function BiodataCreator() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Reset previous size error
     setShowSizeError(false);
 
     // 10 MB limit
@@ -110,7 +126,6 @@ export default function BiodataCreator() {
     setLoading(true);
 
     try {
-      // Optional: toast.info("Compressing image...");
       const options = {
         maxSizeMB: 0.5,
         maxWidthOrHeight: 1920,
@@ -124,7 +139,6 @@ export default function BiodataCreator() {
       const imageUrl = await uploadFileToSupabase(compressedFile as File);
       if (!imageUrl) {
         console.error('Failed to upload image to Supabase');
-        // toast.error('Failed to upload image');
         setErrors(prev => ({ ...prev, image: 'Failed to upload image. Please try again.' }));
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
@@ -137,11 +151,10 @@ export default function BiodataCreator() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
-        // toast.success('Image ready!');
       };
       reader.readAsDataURL(compressedFile);
 
-      // Optional: update the input to hold the compressed file
+      // Update the input to hold the compressed file
       const dataTransfer = new DataTransfer();
       const compressedFileAsFile = new File([compressedFile], file.name, {
         type: compressedFile.type,
@@ -161,7 +174,6 @@ export default function BiodataCreator() {
       setErrors(prev => ({ ...prev, image: undefined }));
     } catch (error) {
       console.error('Compression / upload error:', error);
-      // toast.error('Failed to process image');
       setErrors(prev => ({ ...prev, image: 'Failed to process image. Please try again.' }));
     } finally {
       setLoading(false);
@@ -191,7 +203,6 @@ export default function BiodataCreator() {
         }
       });
 
-
       const response = await fetch(`${import.meta.env.VITE_DOMAIN_URL || ''}/api/v1/generate-bio`, {
         method: 'POST',
         body: formDataToSend
@@ -209,9 +220,8 @@ export default function BiodataCreator() {
     }
   };
 
-
-
-  const wordCount = (text: string) => text.trim().split(/\s+/).filter(w => w.length > 0).length;
+  const wordCount = (text: string) =>
+      text.trim().split(/\s+/).filter(w => w.length > 0).length;
 
   if (biodataUrl) {
     return (
@@ -264,7 +274,8 @@ export default function BiodataCreator() {
                     socialMedia: '',
                     aboutMe: '',
                     partnerPreferences: '',
-                    image: null
+                    image: null,
+                    imageUrl: ''
                   });
                   setImagePreview(null);
                 }}
@@ -287,7 +298,9 @@ export default function BiodataCreator() {
                 Create Your Biodata
               </h1>
             </div>
-            <p className="text-muted-foreground text-base sm:text-lg">Find your perfect match with a beautiful profile</p>
+            <p className="text-muted-foreground text-base sm:text-lg">
+              Find your perfect match with a beautiful profile
+            </p>
           </div>
 
           <div className="bg-card rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-8 space-y-5 sm:space-y-6 border border-border">
@@ -306,6 +319,7 @@ export default function BiodataCreator() {
                     onChange={handleImageUpload}
                     className="hidden"
                     id="image-upload"
+                    ref={fileInputRef}
                 />
                 <label
                     htmlFor="image-upload"
@@ -318,7 +332,9 @@ export default function BiodataCreator() {
                   ) : (
                       <div className="w-32 h-32 sm:w-48 sm:h-48 mx-auto rounded-full border-4 border-dashed border-primary/30 flex flex-col items-center justify-center bg-secondary hover:bg-muted active:bg-muted transition-all animate-pulse-slow">
                         <Upload className="w-10 h-10 sm:w-12 sm:h-12 text-primary mb-2" />
-                        <span className="text-sm sm:text-base text-primary font-medium">Click to upload</span>
+                        <span className="text-sm sm:text-base text-primary font-medium">
+                      Click to upload
+                    </span>
                       </div>
                   )}
                 </label>
@@ -328,12 +344,14 @@ export default function BiodataCreator() {
 
             {/* Name */}
             <div>
-              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">Name *</label>
+              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                Name *
+              </label>
               <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className={inputBaseClass}
                   placeholder="Your full name"
               />
               {errors.name && <p className="text-destructive text-sm mt-1">{errors.name}</p>}
@@ -342,22 +360,47 @@ export default function BiodataCreator() {
             {/* DOB & Job Role */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
               <div>
-                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">Date of Birth *</label>
-                <input
-                    type="date"
-                    value={formData.dob}
-                    onChange={(e) => setFormData({ ...formData, dob: e.target.value })}
-                    className="w-full h-12 sm:h-[3.5rem] px-3 sm:px-4 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all [appearance:textfield] text-left"
-                />
+                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                  Date of Birth *
+                </label>
+
+                {/* Custom-styled DOB field with hidden native date input */}
+                <div className="relative">
+                  <div
+                      className={`${inputBaseClass} cursor-pointer flex items-center`}
+                  >
+                  <span
+                      className={
+                        formData.dob ? "text-foreground" : "text-muted-foreground"
+                      }
+                  >
+                    {formData.dob
+                        ? formatDateDisplay(formData.dob)
+                        : "DD MMM YYYY"}
+                  </span>
+                  </div>
+                  <input
+                      type="date"
+                      value={formData.dob}
+                      onChange={(e) =>
+                          setFormData({ ...formData, dob: e.target.value })
+                      }
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                </div>
+
                 {errors.dob && <p className="text-destructive text-sm mt-1">{errors.dob}</p>}
               </div>
+
               <div>
-                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">Job Role</label>
+                <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                  Job Role
+                </label>
                 <input
                     type="text"
                     value={formData.jobRole}
                     onChange={(e) => setFormData({ ...formData, jobRole: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    className={inputBaseClass}
                     placeholder="Software Engineer"
                 />
                 {errors.jobRole && <p className="text-destructive text-sm mt-1">{errors.jobRole}</p>}
@@ -366,12 +409,14 @@ export default function BiodataCreator() {
 
             {/* Location */}
             <div>
-              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">Current Location *</label>
+              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                Current Location *
+              </label>
               <input
                   type="text"
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                  className="w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                  className={inputBaseClass}
                   placeholder="Mumbai, India"
               />
               {errors.location && <p className="text-destructive text-sm mt-1">{errors.location}</p>}
@@ -379,13 +424,15 @@ export default function BiodataCreator() {
 
             {/* Social Media */}
             <div>
-              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">Social Media Handles</label>
+              <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
+                Social Media Handles
+              </label>
               <div className="relative">
                 <input
                     type="text"
                     value={formData.socialMedia}
                     onChange={(e) => setFormData({ ...formData, socialMedia: e.target.value })}
-                    className="w-full px-3 sm:px-4 py-3 sm:py-3.5 rounded-xl border-2 border-input bg-background text-foreground text-sm sm:text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                    className={`${inputBaseClass} text-sm sm:text-base`}
                     placeholder="Instagram:_amritadas_ LinkedIn:amrita-j-das"
                 />
               </div>
@@ -395,11 +442,14 @@ export default function BiodataCreator() {
             <div>
               <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
                 About Me *
-                <span className={`text-xs sm:text-sm ml-2 block sm:inline mt-1 sm:mt-0 ${
-                    wordCount(formData.aboutMe) >= 50 && wordCount(formData.aboutMe) <= 250
-                        ? 'text-green-600'
-                        : 'text-destructive'
-                }`}>
+                <span
+                    className={`text-xs sm:text-sm ml-2 block sm:inline mt-1 sm:mt-0 ${
+                        wordCount(formData.aboutMe) >= 50 &&
+                        wordCount(formData.aboutMe) <= 250
+                            ? 'text-green-600'
+                            : 'text-destructive'
+                    }`}
+                >
                 ({wordCount(formData.aboutMe)} / 50-250 words)
               </span>
               </label>
@@ -412,18 +462,25 @@ export default function BiodataCreator() {
                   className="w-full px-3 sm:px-4 py-3 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 sm:h-36 resize-none"
                   placeholder="Tell us about yourself, your interests, hobbies, and what makes you unique..."
               />
-              {errors.aboutMe && <p className="text-destructive text-sm mt-1 font-medium">{errors.aboutMe}</p>}
+              {errors.aboutMe && (
+                  <p className="text-destructive text-sm mt-1 font-medium">
+                    {errors.aboutMe}
+                  </p>
+              )}
             </div>
 
             {/* Partner Preferences */}
             <div>
               <label className="block text-foreground font-semibold mb-2 text-sm sm:text-base">
                 Partner Preferences *
-                <span className={`text-xs sm:text-sm ml-2 block sm:inline mt-1 sm:mt-0 ${
-                    wordCount(formData.partnerPreferences) >= 50 && wordCount(formData.partnerPreferences) <= 250
-                        ? 'text-green-600'
-                        : 'text-destructive'
-                }`}>
+                <span
+                    className={`text-xs sm:text-sm ml-2 block sm:inline mt-1 sm:mt-0 ${
+                        wordCount(formData.partnerPreferences) >= 50 &&
+                        wordCount(formData.partnerPreferences) <= 250
+                            ? 'text-green-600'
+                            : 'text-destructive'
+                    }`}
+                >
                 ({wordCount(formData.partnerPreferences)} / 50-250 words)
               </span>
               </label>
@@ -436,7 +493,11 @@ export default function BiodataCreator() {
                   className="w-full px-3 sm:px-4 py-3 rounded-xl border-2 border-input bg-background text-foreground text-base focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 sm:h-36 resize-none"
                   placeholder="Describe your ideal partner, their qualities, values, and what you're looking for in a relationship..."
               />
-              {errors.partnerPreferences && <p className="text-destructive text-sm mt-1 font-medium">{errors.partnerPreferences}</p>}
+              {errors.partnerPreferences && (
+                  <p className="text-destructive text-sm mt-1 font-medium">
+                    {errors.partnerPreferences}
+                  </p>
+              )}
             </div>
 
             {errors.submit && (
