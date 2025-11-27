@@ -226,17 +226,26 @@ export default function BiodataCreator() {
 
             <div className="bg-gradient-to-r from-secondary to-muted rounded-2xl p-6 mb-6 border border-border">
               <p className="text-sm text-muted-foreground mb-3">Here you can find your biodata:</p>
-              <div className="overflow-x-auto">
+              <div className="mb-4">
                 <a
                     href={biodataUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary hover:text-romantic font-medium text-sm sm:text-base whitespace-nowrap flex items-center justify-center gap-2 transition-colors"
+                    className="text-primary hover:text-romantic font-medium text-sm sm:text-base break-all block transition-colors"
                 >
                   {biodataUrl}
-                  <ExternalLink className="w-4 h-4 flex-shrink-0" />
                 </a>
               </div>
+              <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(biodataUrl);
+                    // You could add a toast notification here
+                  }}
+                  className="w-full bg-primary text-primary-foreground px-4 py-2 rounded-lg font-medium hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Copy URL
+              </button>
             </div>
 
             <button
