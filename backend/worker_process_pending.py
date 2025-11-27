@@ -3,7 +3,7 @@ import os
 from supabase_client import supabase, upload_html
 from dotenv import load_dotenv
 from openai import OpenAI
-
+import html
 from datetime import datetime
 
 BUCKET_NAME = "biodata-images"
@@ -28,47 +28,54 @@ def count_words(text: str) -> int:
 
 
 def generate_biodata_html(
-        name: str,
-        dob: str,
-        job_role: str,
-        location: str,
-        social_handles_csv: str,
-        about_me: str,
-        partner_preferences: str,
-        image_url: str,
-        model: str = "gpt-4.1-mini",
+    name: str,
+    dob: str,
+    job_role: str,
+    location: str,
+    social_handles_csv: str,
+    about_me: str,
+    partner_preferences: str,
+    image_url: str,
+    model: str = "gpt-4.1-mini",
 ):
     """
-  Generates a fully mobile-responsive biodata HTML page:
-  - Perfect on iPhone/Android screens
-  - Centered nicely on desktop
-  - Mini-cards, badges, dynamic age JS
-  - SAFE when job role or social handles are missing
-  - Supports multiple social handles (Instagram, LinkedIn, Snapchat, TikTok, etc.)
-  """
+    Generates a fully mobile-responsive biodata HTML page:
+    - Works on iPhone/Android + desktop
+    - Handles missing job role & socials
+    - Handles arbitrary social text safely (Instagram/LinkedIn/Facebook/Snapchat/TikTok etc.)
+    - Social text can NEVER break the HTML
+    """
 
     if not (50 <= count_words(about_me) <= 250):
         raise ValueError("'about_me' must be 50–250 words.")
     if not (50 <= count_words(partner_preferences) <= 250):
         raise ValueError("'partner_preferences' must be 50–250 words.")
 
-    # Pre-compute flags so the model knows what is actually present
+    # Flags + sanitized inputs for safety
     job_role_present = bool(job_role.strip())
     socials_present = bool(social_handles_csv.strip())
 
+    # Escape anything that could be interpreted as HTML
+    safe_social_text = html.escape(social_handles_csv or "")
+    safe_name = html.escape(name or "")
+    safe_dob = html.escape(dob or "")
+    safe_job_role = html.escape(job_role or "")
+    safe_location = html.escape(location or "")
+    safe_image_url = html.escape(image_url or "")
+
     system_prompt = (
         "You are an expert UI/UX designer who builds modern, romantic, premium, "
-        "dating-app-style biodata pages in HTML. "
-        "You must output ONLY HTML. No Markdown."
+        "dating-app-style biodata pages in pure HTML+CSS. "
+        "You must output ONLY valid HTML. No Markdown. No comments."
     )
 
     structured_block = f"""
-Name: {name}
-Date of Birth: {dob}
-Job Role: {job_role or "(not provided)"}
+Name: {safe_name}
+Date of Birth: {safe_dob}
+Job Role: {safe_job_role or "(not provided)"}
 Job Role Present: {"yes" if job_role_present else "no"}
-Current Location: {location or "(not provided)"}
-Social Handles CSV: {social_handles_csv or "(none)"}
+Current Location: {safe_location or "(not provided)"}
+Social Handles Raw Text: {safe_social_text or "(none provided)"}
 Social Handles Present: {"yes" if socials_present else "no"}
 
 [ABOUT ME]
@@ -77,7 +84,7 @@ Social Handles Present: {"yes" if socials_present else "no"}
 [PARTNER PREFERENCES]
 {partner_preferences}
 
-Image URL: {image_url}
+Image URL: {safe_image_url}
 """
 
     user_prompt = f"""
@@ -85,22 +92,14 @@ The following is the user's biodata information:
 
 {structured_block}
 
-Use this data to generate a **complete HTML5 biodata page**.
+Generate a **complete HTML5 biodata** page.
 
-VERY IMPORTANT:
-- If a field is marked as "(not provided)" or "Present: no", do NOT invent it.
-- Omit that card/section entirely instead of writing placeholders.
-
-############################################################
-### 📱 MOBILE-FIRST RESPONSIVE LAYOUT
-############################################################
-
-The page MUST:
-- Work beautifully on small mobile screens (iOS/Android).
-- Use a scrolling layout (NO vertical centering tricks that cut off content).
-- Be centered within the viewport on larger screens.
-
-Use:
+############################################
+## GLOBAL REQUIREMENTS
+############################################
+- Mobile-first, responsive, scrolling layout.
+- Card centered on larger screens, full-width-ish on mobile.
+- Use this approximate layout:
 
 body {{
   background: linear-gradient(135deg, #f5e9ff 0%, #e3d1ff 50%, #d8c2ff 100%);
@@ -140,20 +139,11 @@ body {{
   }}
 }}
 
-############################################################
-### 💖 HERO SECTION
-############################################################
-- Circular profile image (140px mobile → 170px desktop).
-- Centered, with purple ring and glow.
-- Name big and bold.
-- Small dating-style tagline.
-- 2–3 line highlight summary based on ABOUT ME.
+- Do NOT draw any vertical colored pipe/line next to headings.
 
-############################################################
-### ⭐ BASIC DETAILS (SAFE MINI CARDS)
-############################################################
-Use a responsive grid:
-
+############################################
+## BASIC DETAILS MINI CARDS
+############################################
 .details-grid {{
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -182,24 +172,19 @@ Use a responsive grid:
 }}
 
 Include cards for:
-- Name (always, if provided)
+- Name (if provided)
 - Date of Birth
-- Age (with dynamic JS span)
-- Current Location
-- Job Role **ONLY IF** Job Role Present is "yes".
-  → If Job Role Present is "no", DO NOT render a “Job Role” card.
+- Age (value is <span id="calculated-age"></span>)
+- Current Location (if provided)
+- Job Role **ONLY IF** “Job Role Present: yes”. If "no", omit the card.
 
-Age value must be:
-
-<span id="calculated-age"></span>
-
-############################################################
-### 🔮 DYNAMIC AGE SCRIPT
-############################################################
-At the bottom of HTML, before </body>, include:
+############################################
+## DYNAMIC AGE (JS)
+############################################
+In the HTML body (near the bottom), you must include:
 
 <script>
-  const dobString = "{dob}";
+  const dobString = "{safe_dob}";
   const birth = new Date(dobString);
 
   function calculateAge(d) {{
@@ -220,45 +205,51 @@ At the bottom of HTML, before </body>, include:
   }}
 </script>
 
-############################################################
-### 💜 INTEREST BADGES
-############################################################
-.badge {{
-  display: inline-block;
-  background: #f1e6ff;
-  color: #5a2ca0;
-  padding: 6px 14px;
-  border-radius: 999px;
-  margin: 6px 8px 0 0;
-  font-size: 0.85rem;
-  box-shadow: 0 2px 6px rgba(150,90,255,0.18);
-}}
+############################################
+## SOCIAL PROFILES 💜 (ROBUST & UNBREAKABLE)
+############################################
+You are given **Social Handles Raw Text** which is arbitrary user text. It may be:
+- Empty
+- Single handle like: `Instagram: billi`
+- Multiple handles:
+    `Instagram: billi, LinkedIn : https://linkedin.com/in/billi,
+     Snapchat billisnap Tiktok: @billi`
+- Or any messy combination, with extra spaces/newlines.
 
-############################################################
-### 💼 SOCIAL PROFILES 💜 (ROBUST)
-############################################################
-You are given:
+RULES (MUST FOLLOW):
 
-Social Handles CSV: a comma-separated string. Examples:
-- "Instagram: billi"
-- "Instagram: @billi, LinkedIn:https://linkedin.com/in/billi"
-- "Instagram @billi, Snapchat: billisnap, TikTok: @billi.cat"
+1. If “Social Handles Present” is "no" or the raw text is "(none provided)":
+   → Do NOT render a “Social Profiles 💜” section at all.
 
-RULES:
+2. Never treat this user text as HTML.
+   - Do NOT insert it inside HTML tags (like inside an `<a>` tag).
+   - Only ever place it as text content inside `<span>` or `<li>`.
+   - It is already HTML-escaped (using &lt;, &gt;, &amp;), so just output it as plain text.
 
-1. If **Social Handles Present** is "no" OR the string is "(none)":
-   → Do NOT render the “Social Profiles 💜” section at all.
+3. Try to parse platforms **only by keyword**, case-insensitive:
+   - contains "instagram" → Instagram 📸
+   - contains "linkedin" → LinkedIn 💼
+   - contains "facebook" → Facebook 👍
+   - contains "snapchat" → Snapchat 👻
+   - contains "tiktok" or "tik tok" → TikTok 🎵
 
-2. If there is at least one handle:
-   - Render a section with heading: "Social Profiles 💜"
-   - Use a simple list:
+4. Splitting into entries:
+   - First, replace newlines with commas conceptually.
+   - Then split by commas.
+   - Trim surrounding whitespace from each piece.
+   - Ignore pieces that are now empty.
 
-     <ul class="social-list">
-       <li>...</li>
-       ...
-     </ul>
+5. For each non-empty piece:
+   - Detect platform keyword (as above). If none match, label it as “Profile ⭐”.
+   - Do **NOT** try to be too clever; if unsure, just show the text under “Profile ⭐”.
+   - Render as:
 
-   - CSS:
+     <li>
+       <span class="social-label">📸 Instagram:</span>
+       <span class="social-text">billi</span>
+     </li>
+
+   - Use this CSS:
 
      .social-list {{
        list-style: none;
@@ -277,90 +268,77 @@ RULES:
        margin-right: 4px;
      }}
 
-     .social-link {{
+     .social-text {{
+       font-weight: 500;
+     }}
+
+6. Clickable URLs (optional but MUST be safe):
+   - Only treat a value as a URL and wrap in <a> if:
+       - it starts with "http://" or "https://" or "www."
+       - AND it contains no spaces or quotes.
+   - In that case:
+
+     <a href="THE_URL" class="social-link" target="_blank" rel="noopener noreferrer">THE_URL</a>
+
+   - .social-link {{
        color: #7a35d2;
        text-decoration: none;
        font-weight: 500;
      }}
-
      .social-link:hover {{
        text-decoration: underline;
      }}
 
-3. Parsing each handle (be defensive!):
-   - Split the CSV string by commas → each part is one handle entry.
-   - Trim whitespace.
-   - If entry is empty after trimming → skip it.
+7. If you cannot confidently parse the text into multiple entries:
+   - Render ONE list item:
 
-   For each non-empty entry:
-   - Try to detect platform name (case-insensitive substring match):
-       - contains "instagram" → Instagram 📸
-       - contains "linkedin" → LinkedIn 💼
-       - contains "snapchat" → Snapchat 👻
-       - contains "tiktok" → TikTok 🎵
-       - otherwise → Generic "Profile" ⭐
+     <li>
+       <span class="social-label">Social:</span>
+       <span class="social-text">FULL_RAW_TEXT_HERE</span>
+     </li>
 
-   - Try to separate label and value:
-       - If there is a ":" character → left is label, right is value.
-       - Else if there is a space and it starts with a platform word (e.g., "Instagram @billi"):
-           - Treat the first word as label and the rest as value.
-       - Else if it only looks like "@username" or "username":
-           - Treat label as "Profile" and value as that text.
+   - This way, the HTML NEVER breaks, regardless of what the user typed.
 
-   - If the extracted value **looks like a URL** (contains "http://" or "https://" or "www."):
-       - Render it as a clickable link:
+############################################
+## ABOUT ME, INTERESTS, PARTNER PREFS
+############################################
+- Use ABOUT ME and PARTNER PREFERENCES text, lightly polished.
+- Extract interests/hobbies into .badge elements as before.
+- Tone: dating-app friendly but family-shareable.
 
-         <li><span class="social-label">📸 Instagram:</span>
-             <a href="URL_HERE" class="social-link" target="_blank" rel="noopener noreferrer">URL_HERE</a>
-         </li>
-
-   - Otherwise, just render label + plain text (no link):
-
-         <li><span class="social-label">📸 Instagram:</span> @billi</li>
-
-4. ALWAYS keep the HTML valid:
-   - All list items must be inside a single <ul>.
-   - Do not create nested <ul> accidentally.
-   - If after parsing no valid handles remain → skip the whole Social Profiles section.
-
-############################################################
-### ABOUT ME + PARTNER PREFERENCES
-############################################################
-Use the given text, polish lightly, keep first-person voice and meaning.
-
-############################################################
-### FOOTER
-############################################################
+############################################
+## FOOTER
+############################################
 Centered text:
 “Share this profile with someone special 💜”
 
-############################################################
-### FULL HTML5 DOCUMENT
-############################################################
-Return FULL HTML5 like:
+############################################
+## HTML SKELETON
+############################################
+Return a full HTML5 page:
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{name} - Biodata</title>
+  <title>{safe_name} - Biodata</title>
   <style>
-    /* all CSS here */
+    /* all CSS here, including .card, .details-grid, .badge, .social-list, etc. */
   </style>
 </head>
 <body>
   <div class="card">
-    <!-- profile content here -->
+    <!-- hero + sections here -->
   </div>
   <!-- age script here -->
 </body>
 </html>
 
-RULES:
-- ONLY return raw HTML (no Markdown, no ```).
-- No lorem ipsum.
-- Do NOT invent data for missing fields.
+CRITICAL RULES:
+- ONLY output raw HTML (no backticks, no Markdown).
+- Never echo user social text as raw HTML; it is already escaped, treat as plain text.
+- If parsing social text is confusing, fall back to the simple “one <li> with full text” approach.
 """
 
     response = client.chat.completions.create(
