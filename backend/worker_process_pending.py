@@ -39,17 +39,22 @@ def generate_biodata_html(
         model: str = "gpt-4.1-mini",
 ):
     """
-    Generates a fully mobile-responsive biodata HTML page:
-    - Perfect on iPhone/Android screens
-    - Centered beautifully on desktop
-    - Scrolls naturally on mobile (no forced vertical centering)
-    - Mini-cards, badges, dynamic age script
-    """
+  Generates a fully mobile-responsive biodata HTML page:
+  - Perfect on iPhone/Android screens
+  - Centered nicely on desktop
+  - Mini-cards, badges, dynamic age JS
+  - SAFE when job role or social handles are missing
+  - Supports multiple social handles (Instagram, LinkedIn, Snapchat, TikTok, etc.)
+  """
 
     if not (50 <= count_words(about_me) <= 250):
         raise ValueError("'about_me' must be 50–250 words.")
     if not (50 <= count_words(partner_preferences) <= 250):
         raise ValueError("'partner_preferences' must be 50–250 words.")
+
+    # Pre-compute flags so the model knows what is actually present
+    job_role_present = bool(job_role.strip())
+    socials_present = bool(social_handles_csv.strip())
 
     system_prompt = (
         "You are an expert UI/UX designer who builds modern, romantic, premium, "
@@ -60,9 +65,11 @@ def generate_biodata_html(
     structured_block = f"""
 Name: {name}
 Date of Birth: {dob}
-Job Role: {job_role}
-Current Location: {location}
-Social Handles (comma separated): {social_handles_csv}
+Job Role: {job_role or "(not provided)"}
+Job Role Present: {"yes" if job_role_present else "no"}
+Current Location: {location or "(not provided)"}
+Social Handles CSV: {social_handles_csv or "(none)"}
+Social Handles Present: {"yes" if socials_present else "no"}
 
 [ABOUT ME]
 {about_me}
@@ -78,59 +85,44 @@ The following is the user's biodata information:
 
 {structured_block}
 
-Generate a **complete HTML5 biodata** page with:
+Use this data to generate a **complete HTML5 biodata page**.
+
+VERY IMPORTANT:
+- If a field is marked as "(not provided)" or "Present: no", do NOT invent it.
+- Omit that card/section entirely instead of writing placeholders.
 
 ############################################################
-### 📱 MOBILE-FIRST RESPONSIVE LAYOUT (VERY IMPORTANT)
+### 📱 MOBILE-FIRST RESPONSIVE LAYOUT
 ############################################################
 
 The page MUST:
-- Look perfect on iPhone, Android, small screens
-- Use **scrolling layout** on mobile (NO vertical centering)
-- Use **centered layout only on desktop**
-- Use responsive units (%, rem, max-width, minmax grid)
-- Card width:
-    - mobile: width 94%
-    - tablet: width 90%
-    - desktop: max-width 820px
+- Work beautifully on small mobile screens (iOS/Android).
+- Use a scrolling layout (NO vertical centering tricks that cut off content).
+- Be centered within the viewport on larger screens.
 
-- Add this meta tag:
+Use:
 
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-############################################################
-### 🎨 GLOBAL DESIGN (DATING-APP STYLE)
-############################################################
 body {{
   background: linear-gradient(135deg, #f5e9ff 0%, #e3d1ff 50%, #d8c2ff 100%);
   margin: 0;
   padding: 0;
-
+  min-height: 100vh;
   display: flex;
   justify-content: center;
-
-  /* MOBILE MUST SCROLL */
   align-items: flex-start;
-
   padding-top: 40px;
   padding-bottom: 60px;
-
   font-family: "Inter", "Poppins", "SF Pro Display", system-ui, -apple-system, sans-serif;
   color: #1a1a1a;
 }}
 
-############################################################
-### 💜 CARD DESIGN (RESPONSIVE)
-############################################################
 .card {{
   background: #ffffff;
   width: 94%;
   max-width: 820px;
   margin: auto;
-
   border-radius: 24px;
   box-shadow: 0 12px 38px rgba(140,84,255,0.18);
-
   padding: 32px 22px 45px;
   transition: 0.25s ease;
 }}
@@ -149,24 +141,24 @@ body {{
 }}
 
 ############################################################
-### 🚫 NO VERTICAL PIPE BEFORE HEADINGS
+### 💖 HERO SECTION
 ############################################################
+- Circular profile image (140px mobile → 170px desktop).
+- Centered, with purple ring and glow.
+- Name big and bold.
+- Small dating-style tagline.
+- 2–3 line highlight summary based on ABOUT ME.
 
 ############################################################
-### 💖 HERO SECTION (CENTERED)
+### ⭐ BASIC DETAILS (SAFE MINI CARDS)
 ############################################################
+Use a responsive grid:
 
-- Circular profile image 140px mobile → 170px desktop.
-- Center-aligned.
-- Purple glow ring.
-
-############################################################
-### ⭐ BASIC DETAILS (RESPONSIVE GRID MINI CARDS)
-############################################################
 .details-grid {{
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 14px;
+  margin-top: 16px;
 }}
 
 .detail-card {{
@@ -181,6 +173,7 @@ body {{
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: #7a7a8a;
+  margin-bottom: 4px;
 }}
 
 .detail-value {{
@@ -188,14 +181,22 @@ body {{
   font-weight: 500;
 }}
 
-############################################################
-### 🔮 DYNAMIC AGE SCRIPT
-############################################################
-Age must be:
+Include cards for:
+- Name (always, if provided)
+- Date of Birth
+- Age (with dynamic JS span)
+- Current Location
+- Job Role **ONLY IF** Job Role Present is "yes".
+  → If Job Role Present is "no", DO NOT render a “Job Role” card.
+
+Age value must be:
 
 <span id="calculated-age"></span>
 
-Age JS:
+############################################################
+### 🔮 DYNAMIC AGE SCRIPT
+############################################################
+At the bottom of HTML, before </body>, include:
 
 <script>
   const dobString = "{dob}";
@@ -206,7 +207,7 @@ Age JS:
     const t = new Date();
     let age = t.getFullYear() - d.getFullYear();
     if (t.getMonth() < d.getMonth() ||
-       (t.getMonth()==d.getMonth() && t.getDate()<d.getDate())) {{
+       (t.getMonth() === d.getMonth() && t.getDate() < d.getDate())) {{
       age--;
     }}
     return age;
@@ -214,12 +215,13 @@ Age JS:
 
   const ageEl = document.getElementById("calculated-age");
   if (ageEl && !isNaN(birth)) {{
-    ageEl.textContent = calculateAge(birth);
+    const age = calculateAge(birth);
+    if (age) ageEl.textContent = age;
   }}
 </script>
 
 ############################################################
-### 💜 INTEREST BADGES (RESPONSIVE)
+### 💜 INTEREST BADGES
 ############################################################
 .badge {{
   display: inline-block;
@@ -233,40 +235,132 @@ Age JS:
 }}
 
 ############################################################
-### SOCIAL PROFILES 💜 (LEFT ALIGNED)
+### 💼 SOCIAL PROFILES 💜 (ROBUST)
 ############################################################
+You are given:
+
+Social Handles CSV: a comma-separated string. Examples:
+- "Instagram: billi"
+- "Instagram: @billi, LinkedIn:https://linkedin.com/in/billi"
+- "Instagram @billi, Snapchat: billisnap, TikTok: @billi.cat"
+
+RULES:
+
+1. If **Social Handles Present** is "no" OR the string is "(none)":
+   → Do NOT render the “Social Profiles 💜” section at all.
+
+2. If there is at least one handle:
+   - Render a section with heading: "Social Profiles 💜"
+   - Use a simple list:
+
+     <ul class="social-list">
+       <li>...</li>
+       ...
+     </ul>
+
+   - CSS:
+
+     .social-list {{
+       list-style: none;
+       padding: 0;
+       margin: 6px 0 0;
+     }}
+
+     .social-list li {{
+       margin-bottom: 6px;
+       font-size: 0.95rem;
+     }}
+
+     .social-label {{
+       font-weight: 500;
+       color: #6a1fb4;
+       margin-right: 4px;
+     }}
+
+     .social-link {{
+       color: #7a35d2;
+       text-decoration: none;
+       font-weight: 500;
+     }}
+
+     .social-link:hover {{
+       text-decoration: underline;
+     }}
+
+3. Parsing each handle (be defensive!):
+   - Split the CSV string by commas → each part is one handle entry.
+   - Trim whitespace.
+   - If entry is empty after trimming → skip it.
+
+   For each non-empty entry:
+   - Try to detect platform name (case-insensitive substring match):
+       - contains "instagram" → Instagram 📸
+       - contains "linkedin" → LinkedIn 💼
+       - contains "snapchat" → Snapchat 👻
+       - contains "tiktok" → TikTok 🎵
+       - otherwise → Generic "Profile" ⭐
+
+   - Try to separate label and value:
+       - If there is a ":" character → left is label, right is value.
+       - Else if there is a space and it starts with a platform word (e.g., "Instagram @billi"):
+           - Treat the first word as label and the rest as value.
+       - Else if it only looks like "@username" or "username":
+           - Treat label as "Profile" and value as that text.
+
+   - If the extracted value **looks like a URL** (contains "http://" or "https://" or "www."):
+       - Render it as a clickable link:
+
+         <li><span class="social-label">📸 Instagram:</span>
+             <a href="URL_HERE" class="social-link" target="_blank" rel="noopener noreferrer">URL_HERE</a>
+         </li>
+
+   - Otherwise, just render label + plain text (no link):
+
+         <li><span class="social-label">📸 Instagram:</span> @billi</li>
+
+4. ALWAYS keep the HTML valid:
+   - All list items must be inside a single <ul>.
+   - Do not create nested <ul> accidentally.
+   - If after parsing no valid handles remain → skip the whole Social Profiles section.
 
 ############################################################
 ### ABOUT ME + PARTNER PREFERENCES
 ############################################################
+Use the given text, polish lightly, keep first-person voice and meaning.
 
 ############################################################
 ### FOOTER
 ############################################################
-Centered:
+Centered text:
 “Share this profile with someone special 💜”
 
 ############################################################
-### MUST RETURN FULL HTML5 DOCUMENT
+### FULL HTML5 DOCUMENT
 ############################################################
+Return FULL HTML5 like:
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{name} - Biodata</title>
-<style>
-ALL CSS MUST BE INCLUDED HERE
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{name} - Biodata</title>
+  <style>
+    /* all CSS here */
+  </style>
 </head>
 <body>
-FULL BIODATA HERE
-<script> AGE SCRIPT </script>
+  <div class="card">
+    <!-- profile content here -->
+  </div>
+  <!-- age script here -->
 </body>
 </html>
 
-ONLY RETURN RAW HTML. NO MARKDOWN.
+RULES:
+- ONLY return raw HTML (no Markdown, no ```).
+- No lorem ipsum.
+- Do NOT invent data for missing fields.
 """
 
     response = client.chat.completions.create(
